@@ -1,19 +1,32 @@
 import 'package:flutter/material.dart';
 
-/// Dark TV-optimised theme inspired by the web portal's dark mode palette.
+/// Dark TV-optimised theme — professional broadcast channel aesthetic.
 class TVTheme {
   TVTheme._();
 
   // ── Core palette ────────────────────────────────────────
-  static const Color background = Color(0xFF0B090A);
-  static const Color surface = Color(0xFF161A1D);
-  static const Color surfaceVariant = Color(0xFF1E2328);
-  static const Color border = Color(0xFF3D4951);
+  static const Color background = Color(0xFF080A0E);
+  static const Color surface = Color(0xFF111520);
+  static const Color surfaceVariant = Color(0xFF171C28);
+  static const Color surfaceElevated = Color(0xFF1C2235);
+  static const Color border = Color(0xFF2A3245);
+  static const Color borderLight = Color(0xFF384460);
   static const Color textPrimary = Colors.white;
   static const Color textSecondary = Color(0xFFB1A7A6);
   static const Color accent = Color(0xFFBA181B);
   static const Color accentLight = Color(0xFFE5383B);
+  static const Color accentGlow = Color(0xFFFF2D2D);
   static const Color silver = Color(0xFFD3D3D3);
+
+  // ── Broadcast / Channel colours ────────────────────────
+  static const Color liveRed = Color(0xFFFF0000);
+  static const Color breakingOrange = Color(0xFFFF6B00);
+  static const Color specialBlue = Color(0xFF0A84FF);
+  static const Color tickerBg = Color(0xFF0D1117);
+  static const Color headerGradientStart = Color(0xFF0F1923);
+  static const Color headerGradientEnd = Color(0xFF1A1020);
+  static const Color gold = Color(0xFFFFD700);
+  static const Color cyan = Color(0xFF00D4FF);
 
   // ── Priority colours ───────────────────────────────────
   static const Color priorityHigh = Color(0xFFEF4444);

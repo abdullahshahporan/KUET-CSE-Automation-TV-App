@@ -5,10 +5,15 @@ import '../config/constants.dart';
 import '../screens/screens.dart';
 import '../services/services.dart';
 import '../theme/tv_theme.dart';
-import '../widgets/announcements/announcements.dart';
 import '../widgets/common/common.dart';
 
-/// The root TV shell — header, navigation bar, content area, and announcement ticker.
+/// The root TV shell — professional broadcast-style layout.
+/// Layout (top to bottom):
+///   1. Compact broadcast header (gradient + LIVE badge + clock)
+///   2. Subtle channel-style nav strip
+///   3. Big main content area (screens)
+///   4. Special Updates bar
+///   5. Bottom headline ticker
 class TVShell extends StatefulWidget {
   const TVShell({super.key});
 
@@ -33,12 +38,10 @@ class _TVShellState extends State<TVShell> {
   @override
   void initState() {
     super.initState();
-    // Landscape orientation lock for TV
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.landscapeLeft,
       DeviceOrientation.landscapeRight,
     ]);
-    // Hide system UI for fullscreen kiosk feel
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
 
     _screens = [
@@ -65,7 +68,6 @@ class _TVShellState extends State<TVShell> {
   }
 
   void _goToTab(int index) {
-    // Reset auto-rotate timer on manual navigation
     _autoRotateTimer?.cancel();
     setState(() => _currentIndex = index);
     _startAutoRotate();
@@ -80,27 +82,38 @@ class _TVShellState extends State<TVShell> {
 
   @override
   Widget build(BuildContext context) {
-    final urgentAnnouncements = AnnouncementService().getUrgent();
+    final announcementService = AnnouncementService();
+    final allAnnouncements = announcementService.getActiveAnnouncements();
+    final urgentAnnouncements = announcementService.getUrgent();
 
     return Scaffold(
       backgroundColor: TVTheme.background,
       body: Column(
         children: [
-          // ── Header ──────────────────────────────────────
-          _buildHeader(),
+          // ── 1. Premium broadcast header ─────────────────
+          _buildBroadcastHeader(),
 
-          // ── Urgent ticker ──────────────────────────────
-          AnnouncementTicker(announcements: urgentAnnouncements),
+          // ── 2. Channel-style nav strip ──────────────────
+          _buildChannelNav(),
 
-          // ── Navigation bar ─────────────────────────────
-          _buildNavBar(),
-
-          // ── Content area ───────────────────────────────
+          // ── 3. Big main content ─────────────────────────
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(28, 20, 28, 16),
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
               child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 400),
+                duration: const Duration(milliseconds: 500),
+                transitionBuilder: (child, animation) {
+                  return FadeTransition(
+                    opacity: animation,
+                    child: SlideTransition(
+                      position: Tween<Offset>(
+                        begin: const Offset(0.02, 0),
+                        end: Offset.zero,
+                      ).animate(animation),
+                      child: child,
+                    ),
+                  );
+                },
                 child: KeyedSubtree(
                   key: ValueKey(_currentIndex),
                   child: _screens[_currentIndex],
@@ -108,96 +121,231 @@ class _TVShellState extends State<TVShell> {
               ),
             ),
           ),
+
+          // ── 4. Special Updates bar ──────────────────────
+          SpecialUpdatesBar(updates: urgentAnnouncements),
+
+          // ── 5. Bottom headline ticker ───────────────────
+          HeadlineTicker(announcements: allAnnouncements),
         ],
       ),
     );
   }
 
-  Widget _buildHeader() {
+  // ─────────────────────────────────────────────────────────
+  // Premium broadcast header — gradient, glow, LIVE badge
+  // ─────────────────────────────────────────────────────────
+  Widget _buildBroadcastHeader() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
-      decoration: const BoxDecoration(
-        color: TVTheme.surface,
-        border: Border(bottom: BorderSide(color: TVTheme.border)),
+      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [TVTheme.headerGradientStart, TVTheme.headerGradientEnd],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+        ),
+        border: Border(
+          bottom: BorderSide(
+            color: TVTheme.accent.withValues(alpha: 0.4),
+            width: 1.5,
+          ),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: TVTheme.accent.withValues(alpha: 0.08),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Row(
         children: [
-          // Logo / Department name
+          // ── Logo / Branding ──
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: TVTheme.accent.withValues(alpha: 0.12),
+              gradient: LinearGradient(
+                colors: [
+                  TVTheme.accent.withValues(alpha: 0.2),
+                  TVTheme.accentLight.withValues(alpha: 0.1),
+                ],
+              ),
               borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: TVTheme.accent.withValues(alpha: 0.3),
+              ),
             ),
-            child: const Icon(Icons.school, color: TVTheme.accent, size: 28),
+            child: const Icon(Icons.school, color: TVTheme.accent, size: 26),
           ),
           const SizedBox(width: 14),
-          const Column(
+          Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                AppConstants.departmentName,
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: TVTheme.textPrimary,
-                ),
+              Row(
+                children: [
+                  const Text(
+                    'CSE',
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w900,
+                      color: TVTheme.textPrimary,
+                      letterSpacing: 2,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Container(
+                    width: 2,
+                    height: 18,
+                    color: TVTheme.accent,
+                  ),
+                  const SizedBox(width: 6),
+                  const Text(
+                    'KUET',
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w900,
+                      color: TVTheme.accent,
+                      letterSpacing: 2,
+                    ),
+                  ),
+                ],
               ),
-              Text(
-                AppConstants.universityName,
-                style: TextStyle(fontSize: 12, color: TVTheme.textSecondary),
+              const Text(
+                'Department of Computer Science & Engineering',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: TVTheme.textSecondary,
+                  letterSpacing: 0.5,
+                ),
               ),
             ],
           ),
+          const SizedBox(width: 20),
+          const LiveBadge(),
           const Spacer(),
+
+          // ── Current section indicator ──
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+            decoration: BoxDecoration(
+              color: TVTheme.surfaceVariant,
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: TVTheme.border),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  _tabs[_currentIndex].icon,
+                  size: 14,
+                  color: TVTheme.accent,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  _tabs[_currentIndex].label.toUpperCase(),
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: TVTheme.textPrimary,
+                    letterSpacing: 1,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 24),
           const ClockWidget(),
         ],
       ),
     );
   }
 
-  Widget _buildNavBar() {
+  // ─────────────────────────────────────────────────────────
+  // Channel-style navigation strip — compact, subtle
+  // ─────────────────────────────────────────────────────────
+  Widget _buildChannelNav() {
     return Container(
-      height: 50,
+      height: 42,
       padding: const EdgeInsets.symmetric(horizontal: 28),
       decoration: const BoxDecoration(
-        color: TVTheme.surfaceVariant,
-        border: Border(bottom: BorderSide(color: TVTheme.border)),
+        color: TVTheme.surface,
+        border: Border(
+          bottom: BorderSide(color: TVTheme.border, width: 0.5),
+        ),
       ),
       child: Row(
-        children: List.generate(_tabs.length, (i) {
-          final tab = _tabs[i];
-          final selected = i == _currentIndex;
-          return GestureDetector(
-            onTap: () => _goToTab(i),
-            child: Container(
-              margin: const EdgeInsets.only(right: 4),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              decoration: BoxDecoration(
-                color: selected ? TVTheme.accent : Colors.transparent,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    tab.icon,
-                    size: 18,
-                    color: selected ? Colors.white : TVTheme.textSecondary,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    tab.label,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
-                      color: selected ? Colors.white : TVTheme.textSecondary,
+        children: [
+          // Channel tabs
+          ...List.generate(_tabs.length, (i) {
+            final tab = _tabs[i];
+            final selected = i == _currentIndex;
+            return GestureDetector(
+              onTap: () => _goToTab(i),
+              child: Container(
+                margin: const EdgeInsets.only(right: 2),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+                decoration: BoxDecoration(
+                  color: selected
+                      ? TVTheme.accent.withValues(alpha: 0.15)
+                      : Colors.transparent,
+                  border: Border(
+                    bottom: BorderSide(
+                      color: selected ? TVTheme.accent : Colors.transparent,
+                      width: 2,
                     ),
                   ),
-                ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      tab.icon,
+                      size: 15,
+                      color: selected ? TVTheme.accent : TVTheme.textSecondary,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      tab.label.toUpperCase(),
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight:
+                            selected ? FontWeight.w700 : FontWeight.w500,
+                        color: selected
+                            ? TVTheme.textPrimary
+                            : TVTheme.textSecondary,
+                        letterSpacing: 0.8,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }),
+
+          const Spacer(),
+
+          // Semester indicator
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: TVTheme.surfaceVariant,
+              borderRadius: BorderRadius.circular(4),
+              border: Border.all(
+                color: TVTheme.border.withValues(alpha: 0.5),
               ),
             ),
-          );
-        }),
+            child: const Text(
+              'SPRING 2026',
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                color: TVTheme.gold,
+                letterSpacing: 1,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
